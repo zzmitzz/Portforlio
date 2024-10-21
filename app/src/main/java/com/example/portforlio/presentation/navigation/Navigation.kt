@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.portforlio.presentation.drivecontrol.DriveControl
+import com.example.portforlio.presentation.drivecontrol.HomeScreen
 
 
 @Composable
@@ -15,7 +16,7 @@ fun Navigation(){
     NavHost(navController = navController, startDestination = Screen.WelcomeScreen.route){
 
         composable(Screen.WelcomeScreen.route){
-            DriveControl(navController = navController)
+            HomeScreen(modifier = Modifier.fillMaxSize(), navController = navController)
         }
     }
 
