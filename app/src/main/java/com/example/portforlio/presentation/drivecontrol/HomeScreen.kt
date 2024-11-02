@@ -1,5 +1,6 @@
 package com.example.portforlio.presentation.drivecontrol
 
+import android.app.Application
 import android.graphics.Paint.Align
 import android.widget.Space
 import androidx.compose.foundation.Image
@@ -18,11 +19,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -47,12 +51,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.provider.FontsContractCompat.Columns
 import androidx.navigation.NavController
+import com.example.portforlio.Constants
 import com.example.portforlio.R
+import com.example.portforlio.presentation.MQTTConnectionService
+import org.eclipse.paho.mqttv5.client.IMqttToken
+import org.eclipse.paho.mqttv5.client.MqttCallback
+import org.eclipse.paho.mqttv5.client.MqttClient
+import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse
+import org.eclipse.paho.mqttv5.common.MqttException
+import org.eclipse.paho.mqttv5.common.MqttMessage
+import org.eclipse.paho.mqttv5.common.packet.MqttProperties
+import kotlin.math.roundToInt
 
 
 @Composable
-fun ControllerResult(modifier: Modifier, textDirection: String, imageView: Int, progress: Float) {
-    val velocity =  progress * 255
+fun ControllerResult(
+    modifier: Modifier,
+    textDirection: String,
+    imageView: Int,
+    progress: Float,
+    client: MQTTConnectionService
+) {
+    val velocity = progress * 255
+    if (textDirection.isNotEmpty() && velocity > 0) {
+        client.publish(
+            Constants.topic,
+            "$textDirection:${velocity.roundToInt()}",
+            0,
+            false
+        )
+    }
     Column(modifier = modifier) {
         if (imageView != 0 && progress != 0f) {
             Image(
@@ -64,7 +92,7 @@ fun ControllerResult(modifier: Modifier, textDirection: String, imageView: Int, 
                 colorFilter = ColorFilter.tint(Color.Blue)
             )
             Text(
-                text = "$textDirection/$velocity",
+                text = "$textDirection:$velocity",
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 color = Color.Black,
                 fontSize = 24.sp,
@@ -74,22 +102,82 @@ fun ControllerResult(modifier: Modifier, textDirection: String, imageView: Int, 
     }
 }
 
+
 @Composable
 fun HomeScreen(modifier: Modifier, navController: NavController) {
     var imageDirection by remember { mutableIntStateOf(0) }
     var textDirection by remember { mutableStateOf("") }
     val progress = remember { mutableFloatStateOf(0.5f) }
+    var showDialog by remember {
+        mutableStateOf(false)
+    }
+    var connectionState by remember {
+        mutableStateOf("Connection ... ")
+    }
+
+    val client: MQTTConnectionService = remember {
+        MQTTConnectionService(
+            serverURI = Constants.uriServer,
+            clientID = "12312421414"
+        )
+    }
+
+
+    LaunchedEffect(Unit) {
+        try {
+            client.connect(
+                username = Constants.username,
+                password = Constants.password,
+                cbClient = object : MqttCallback {
+                    override fun disconnected(disconnectResponse: MqttDisconnectResponse?) {
+                    }
+
+                    override fun mqttErrorOccurred(exception: MqttException?) {
+                    }
+
+                    override fun messageArrived(topic: String?, message: MqttMessage?) {
+                    }
+
+                    override fun deliveryComplete(token: IMqttToken?) {
+                    }
+
+                    override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                        showDialog = true
+                        connectionState = "Connected"
+                    }
+
+                    override fun authPacketArrived(reasonCode: Int, properties: MqttProperties?) {
+                    }
+
+                }
+            )
+        } catch (e: MqttException) {
+            showDialog = true
+            connectionState = "Not connected"
+            e.printStackTrace()
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Connection") },
+                text = { Text(connectionState) },
+                confirmButton = {
+                    Button(onClick = {
+                        showDialog = false
+                    }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+    }
     // Currently for portrait only
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         DriveControl(navController = navController)
-//        Box(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(200.dp)
-//                .background(Color.Black)
-//        )
         Spacer(
             modifier = Modifier.height(50.dp)
         )
@@ -121,6 +209,7 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
                                 onPress = {
                                     tryAwaitRelease()
                                     textDirection = ""
+                                    client.triggerStop()
                                     imageDirection = 0
                                 }
                             )
@@ -145,6 +234,7 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
                                 onPress = {
                                     tryAwaitRelease()
                                     textDirection = ""
+                                    client.triggerStop()
                                     imageDirection = 0
                                 }
                             )
@@ -164,6 +254,7 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
                                 onPress = {
                                     tryAwaitRelease()
                                     textDirection = ""
+                                    client.triggerStop()
                                     imageDirection = 0
                                 }
                             )
@@ -186,6 +277,7 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
                                 onPress = {
                                     tryAwaitRelease()
                                     textDirection = ""
+                                    client.triggerStop()
                                     imageDirection = 0
                                 }
                             )
@@ -196,18 +288,23 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
         Spacer(
             modifier = Modifier.height(80.dp)
         )
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+        ) {
             ControllerResult(
                 modifier = Modifier.weight(1f),
                 textDirection = textDirection,
                 imageView = imageDirection,
-                progress = progress.value
+                progress = progress.value,
+                client = client
             )
-            Column(modifier = Modifier
-                .weight(1f)
-                .align(Alignment.CenterVertically)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .align(Alignment.CenterVertically)
+            ) {
 
                 Slider(
                     modifier = Modifier

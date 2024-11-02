@@ -1,3 +1,5 @@
+import org.gradle.internal.impldep.bsh.commands.dir
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,7 +8,6 @@ plugins {
 android {
     namespace = "com.example.portforlio"
     compileSdk = 34
-
     defaultConfig {
         applicationId = "com.example.portforlio"
         minSdk = 24
@@ -45,13 +46,12 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
         }
     }
 }
 
 dependencies {
-
-    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -70,6 +70,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
-
+    implementation(libs.org.eclipse.paho.android.service)
+//    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+    implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")
     implementation(libs.androidx.media3.exoplayer.hls)
+    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
+    implementation("androidx.legacy:legacy-support-core-utils:1.0.0")
+    implementation("androidx.legacy:legacy-support-v4:1.0.0")
+    implementation(files("libs/support-v4-27.1.1.aar"))
+    implementation("com.android.support:support-v4:27.1.1")
 }
