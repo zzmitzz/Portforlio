@@ -25,7 +25,6 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen()
         super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
         setContent {
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                 PortforlioTheme {

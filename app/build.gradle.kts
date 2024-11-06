@@ -71,12 +71,11 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.org.eclipse.paho.android.service)
-//    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
-    implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")
+//    implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.6")
+//    implementation("org.geckoprojects.messaging:org.eclipse.paho.mqttv5.client:1.2.6.202408220912")
+
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
     implementation("androidx.legacy:legacy-support-core-utils:1.0.0")
-    implementation("androidx.legacy:legacy-support-v4:1.0.0")
-    implementation(files("libs/support-v4-27.1.1.aar"))
-    implementation("com.android.support:support-v4:27.1.1")
 }

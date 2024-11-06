@@ -1,8 +1,13 @@
 package com.example.portforlio.presentation.drivecontrol
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Paint.Align
+import android.util.Base64
+import android.util.Log
 import android.widget.Space
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -54,6 +60,9 @@ import androidx.navigation.NavController
 import com.example.portforlio.Constants
 import com.example.portforlio.R
 import com.example.portforlio.presentation.MQTTConnectionService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.eclipse.paho.mqttv5.client.IMqttMessageListener
 import org.eclipse.paho.mqttv5.client.IMqttToken
 import org.eclipse.paho.mqttv5.client.MqttCallback
 import org.eclipse.paho.mqttv5.client.MqttClient
@@ -111,6 +120,9 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
     var showDialog by remember {
         mutableStateOf(false)
     }
+    val base64ImageMessage = remember {
+        mutableStateOf("")
+    }
     var connectionState by remember {
         mutableStateOf("Connection ... ")
     }
@@ -125,32 +137,45 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
 
     LaunchedEffect(Unit) {
         try {
-            client.connect(
-                username = Constants.username,
-                password = Constants.password,
-                cbClient = object : MqttCallback {
-                    override fun disconnected(disconnectResponse: MqttDisconnectResponse?) {
-                    }
+            withContext(Dispatchers.IO) {
+                client.connect(
+                    username = Constants.username,
+                    password = Constants.password,
+                    cbClient = object : MqttCallback {
+                        override fun disconnected(disconnectResponse: MqttDisconnectResponse?) {
+                        }
 
-                    override fun mqttErrorOccurred(exception: MqttException?) {
-                    }
+                        override fun mqttErrorOccurred(exception: MqttException?) {
+                        }
 
-                    override fun messageArrived(topic: String?, message: MqttMessage?) {
-                    }
+                        override fun messageArrived(topic: String?, message: MqttMessage?) {
+                        }
 
-                    override fun deliveryComplete(token: IMqttToken?) {
-                    }
+                        override fun deliveryComplete(token: IMqttToken?) {
+                        }
 
-                    override fun connectComplete(reconnect: Boolean, serverURI: String?) {
-                        showDialog = true
-                        connectionState = "Connected"
-                    }
+                        override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                            showDialog = true
+                            connectionState = "Connected"
+                        }
 
-                    override fun authPacketArrived(reasonCode: Int, properties: MqttProperties?) {
-                    }
+                        override fun authPacketArrived(reasonCode: Int, properties: MqttProperties?) {
+                        }
 
+                    }
+                )
+                try {
+                    client.subscribe(
+                        "esp32/camera", 0
+                    ) { _, message ->
+                        Log.d("MQTT", message?.payload?.decodeToString() ?: "")
+                        base64ImageMessage.value = message?.payload?.decodeToString() ?: ""
+                    }
+                }catch (e: MqttException) {
+                    showDialog = true
+                    connectionState = e.toString()
                 }
-            )
+            }
         } catch (e: MqttException) {
             showDialog = true
             connectionState = "Not connected"
@@ -177,10 +202,7 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        DriveControl(navController = navController)
-        Spacer(
-            modifier = Modifier.height(50.dp)
-        )
+
 
         Box(
             modifier = Modifier
@@ -286,11 +308,19 @@ fun HomeScreen(modifier: Modifier, navController: NavController) {
             }
         }
         Spacer(
+            modifier = Modifier.height(50.dp)
+        )
+        Box(modifier = Modifier.fillMaxWidth().height(300.dp)){
+            Base64Image(modifier = Modifier, base64ImageMessage.value)
+        }
+
+        Spacer(
             modifier = Modifier.height(80.dp)
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .align(Alignment.CenterHorizontally)
                 .height(180.dp)
         ) {
             ControllerResult(
